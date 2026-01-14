@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ZPD 警官晋升特训 V4.0 (代词强化版)</title>
+    <style>
+        :root {
+            /* 疯狂动物城配色：夜景紫、霓虹蓝、警徽金 */
+            --primary: #240046;    
+            --secondary: #ff9e00;  /* 警徽金 */
+            --accent: #00b4d8;     /* 冰川镇蓝 */
+            --card-bg: rgba(20, 10, 40, 0.95);
+            --correct: #70e000;    /* 荧光绿 */
+            --wrong: #ff0054;      /* 警报红 */
+            --text-main: #ffffff;
+        }
+        body {
+            margin: 0; padding: 0; 
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: var(--primary);
+            background-image: linear-gradient(135deg, #10002b 0%, #3c096c 60%, #ff9e00 100%);
+            color: var(--text-main); 
+            min-height: 100vh; 
+            display: flex; justify-content: center; align-items: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .game-card {
+            background: var(--card-bg); 
+            border: 4px solid var(--accent); 
+            border-radius: 30px;
+            padding: 25px; 
+            box-shadow: 0 0 40px rgba(0, 180, 216, 0.4); 
+            width: 92%; max-width: 650px; text-align: center;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+        }
+        /* 顶部装饰条：警车灯条效果 */
+        .game-card::before {
+            content: ""; position: absolute; top: 0; left: 0; right: 0; height: 8px;
+            background: linear-gradient(90deg, #ff0000, #0000ff, #ff0000);
+            opacity: 0.7;
+        }
+
+        .badge-icon {
+            font-size: 3.5rem; margin: 10px 0; display: block;
+            filter: drop-shadow(0 0 10px var(--secondary));
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce { 0%, 100% {transform: translateY(0);} 50% {transform: translateY(-10px);} }
+
+        .header { display: flex; justify-content: space-between; font-size: 1.1rem; color: var(--accent); margin-bottom: 15px; font-weight: bold; }
+        
+        .progress-track { width: 100%; height: 14px; background: #000; border-radius: 10px; margin-bottom: 20px; border: 1px solid #5a3d8a; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--secondary)); width: 0%; transition: width 0.3s; }
+        
+        .q-type-badge {
+            background: var(--secondary); color: #240046;
+            padding: 5px 15px; border-radius: 15px; font-weight: 800; font-size: 1rem;
+            display: inline-block; margin-bottom: 10px; box-shadow: 0 0 10px var(--secondary);
+        }
+        
+        .q-text { font-size: 1.2rem; line-height: 1.4; margin-bottom: 5px; color: #aaa; }
+        
+        /* 题目大字样式 */
+        .q-highlight { 
+            font-size: 2.2rem; font-weight: bold; color: #fff; 
+            text-shadow: 0 0 15px var(--accent);
+            margin: 15px 0; display: block; letter-spacing: 2px;
+            font-family: "Courier New", monospace; 
+        }
+        .sentence-mode .q-highlight { font-size: 1.5rem; letter-spacing: 0; font-family: sans-serif; text-align: left; padding: 0 10px; }
+
+        /* 输入区域 */
+        .input-area { display: none; width: 100%; margin-top: 15px; }
+        .spelling-input {
+            width: 80px; height: 70px; 
+            font-size: 2.5rem; text-align: center;
+            border-radius: 15px; border: 3px solid var(--secondary);
+            background: rgba(255,255,255,0.15); color: #fff; 
+            outline: none; font-weight: bold; text-transform: lowercase;
+        }
+        .input-hint { color: #aaa; margin-top: 10px; font-size: 0.9rem; }
+
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; margin-top: 15px;}
+        .single-col-grid { grid-template-columns: 1fr !important; }
+
+        .option-btn {
+            background: rgba(255,255,255,0.08); 
+            border: 2px solid var(--accent); 
+            color: white;
+            padding: 15px; font-size: 1.3rem; border-radius: 15px; cursor: pointer; transition: 0.2s;
+            font-weight: bold; min-height: 65px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .option-btn:active { transform: scale(0.96); background: rgba(255,255,255,0.2); }
+        .option-btn.correct { background: var(--correct) !important; border-color: var(--correct); color: #003300; box-shadow: 0 0 20px var(--correct); }
+        .option-btn.wrong { background: var(--wrong) !important; border-color: var(--wrong); opacity: 0.6; }
+
+        .flashcard-mode .option-btn { font-size: 1.8rem; padding: 25px; }
+        
+        .feedback { display: none; margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.6); border-radius: 10px; text-align: left; border-left: 5px solid var(--secondary); }
+        
+        .btn-main { 
+            background: linear-gradient(45deg, var(--accent), #0077b6); 
+            color: white; border: none; padding: 18px 40px; font-size: 1.4rem; 
+            border-radius: 50px; cursor: pointer; font-weight: bold; margin-top: 25px;
+            box-shadow: 0 5px 20px rgba(0, 180, 216, 0.5); width: 100%;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .btn-main:active { transform: translateY(2px); box-shadow: none; }
+
+        .select-level {
+            width: 100%; padding: 15px; margin: 15px 0; 
+            background: rgba(0,0,0,0.3); color: var(--accent); 
+            border: 2px solid var(--accent); border-radius: 12px; font-size: 1.1rem;
+            outline: none;
+        }
+        option { background: #10002b; color: white; }
+    </style>
+</head>
+<body>
+
+    <div id="setup-screen" class="game-card">
+        <span class="badge-icon">🚔</span>
+        <h1 style="color:var(--secondary); margin:0; font-style:italic;">ZOOTOPIA PD</h1>
+        <h2 style="color:#fff; margin:5px 0 20px 0;">警员特训系统 V4.0</h2>
+        
+        <div style="text-align: left; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; margin: 20px 0; font-size: 1rem; border: 1px dashed var(--accent);">
+            <p>🐰 <b>Judy警官：</b> "新任务！闪电(Flash)管理的档案室太乱了！"</p>
+            <p>📁 <b>新增任务：</b> 第7关【档案室特训】，请务必熟练背诵代词变形，否则查档案会很慢！</p>
+        </div>
+
+        <select id="level-select" class="select-level">
+            <option value="1">📂 案件1：兔窝镇的农场清单 (拼写)</option>
+            <option value="2">📂 案件2：尼克的快速反应测试 (混合)</option>
+            <option value="3">📂 案件3：居民背景大调查 (一般现在时)</option>
+            <option value="4">📂 案件4：交通摄像头监控 (现在进行时)</option>
+            <option value="5">📂 案件5：证物归还处 (代词应用)</option>
+            <option value="6">📂 案件6：牛局长的结案报告 (大小写)</option>
+            <option value="7">📂 案件7：档案室的特训 (代词表格记忆)</option>
+        </select>
+
+        <button class="btn-main" onclick="startGame()">接受任务</button>
+    </div>
+
+    <div id="game-screen" class="game-card" style="display: none;">
+        <div class="header">
+            <span id="score-display">🏅 功勋: 0</span>
+            <span id="progress-display">进度: 1/20</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progress-bar"></div></div>
+        
+        <div class="q-type-badge" id="q-tag">任务类型</div>
+        
+        <div class="q-container" id="q-container-box">
+            <div class="q-text" id="q-inst">指令</div>
+            <div class="q-highlight" id="q-main">题目</div>
+        </div>
+
+        <div id="input-area" class="input-area">
+            <input type="text" id="user-input" class="spelling-input" maxlength="2" autocomplete="off">
+            <div class="input-hint">⌨️ 这是一个残缺的证物，填入丢失的字母！</div>
+            <button class="btn-main" onclick="checkSpelling()" style="margin-top:15px;">确认修复</button>
+        </div>
+
+        <div id="options-grid" class="options-grid"></div>
+
+        <div id="feedback-box" class="feedback">
+            <strong id="fb-title" style="display:block; margin-bottom:5px; font-size:1.2rem;"></strong>
+            <span id="fb-text"></span>
+        </div>
+        
+        <button id="next-btn" class="btn-main" style="display:none" onclick="nextQuestion()">下一个案件 ➔</button>
+    </div>
+
+    <div id="result-screen" class="game-card" style="display: none;">
+        <span class="badge-icon">🌟</span>
+        <h1 style="color:var(--secondary);">行动结束！</h1>
+        <p style="font-size: 1.2rem;">你的警员评级得分：</p>
+        <div id="final-score" style="font-size: 3rem; color: var(--correct); font-weight:bold; margin: 10px 0;"></div>
+        <div id="wrong-list" style="text-align:left; margin-top:20px; max-height:200px; overflow-y:auto; padding-right:5px;"></div>
+        <button class="btn-main" onclick="location.reload()">返回警局大厅</button>
+    </div>
+
+<script>
+    // --- 题库数据 V4.0 (含第7关强化) ---
+    const DB = {
+        // 第一关：兔窝镇的农场日记 (拼写)
+        1: [ 
+            {t:'input', inst:"Judy的家乡叫什么？", q:"c o u n _ _ y s i d e", a:"tr", full:"countryside", tips:"提示：中间少了 tr"},
+            {t:'input', inst:"Gideon Grey躲在哪里？", q:"f o _ e s t", a:"r", full:"forest", tips:"提示：fo_est"},
+            {t:'input', inst:"爸爸开什么车去种胡萝卜？", q:"t r a c _ o r", a:"t", full:"tractor", tips:"提示：trac_or"},
+            {t:'input', inst:"Judy在哪里抓坏蛋？(田野)", q:"f _ e l d", a:"i", full:"field", tips:"提示：i和e是一对好朋友"},
+            {t:'input', inst:"树上掉下来很多...", q:"l e a _ e s", a:"v", full:"leaves", tips:"提示：f变v加es"},
+            {t:'input', inst:"小心那个大石头！", q:"r _ c k", a:"o", full:"rock", tips:"提示：r_ck"},
+            {t:'input', inst:"那是一个美丽的大湖", q:"l a _ e", a:"k", full:"lake", tips:"提示：la_e"},
+            {t:'input', inst:"别踩草地！", q:"g r a _ s", a:"s", full:"grass", tips:"提示：两个s"},
+            {t:'input', inst:"去外面透透气", q:"o u t _ i d e", a:"s", full:"outside", tips:"提示：s"},
+            {t:'input', inst:"早上该干嘛了？", q:"g e t  _ p", a:"u", full:"get up", tips:"提示：u"},
+            {t:'input', inst:"快醒醒！迟到了！", q:"w _ k e  u p", a:"a", full:"wake up", tips:"提示：a"},
+            {t:'input', inst:"洗个澡，香喷喷", q:"s h _ w e r", a:"o", full:"shower", tips:"提示：o"},
+            {t:'input', inst:"递给我那条毛巾", q:"t o _ e l", a:"w", full:"towel", tips:"提示：w"},
+            {t:'input', inst:"把毛弄干", q:"d _ y", a:"r", full:"dry", tips:"提示：r"},
+            {t:'input', inst:"刷刷你的大牙齿", q:"t e e _ h", a:"t", full:"teeth", tips:"提示：t"},
+            {t:'input', inst:"这是我的日常作息", q:"r o u t _ n e", a:"i", full:"routine", tips:"提示：i"},
+            {t:'input', inst:"看看地面上有什么线索", q:"g r _ u n d", a:"o", full:"ground", tips:"提示：o"},
+            {t:'input', inst:"我们要来一场比赛！", q:"r _ c e", a:"a", full:"race", tips:"提示：a"},
+            {t:'input', inst:"保护我们的地球", q:"E a _ t h", a:"r", full:"Earth", tips:"提示：r"},
+            {t:'input', inst:"我们要种很多胡萝卜", q:"g r _ w", a:"o", full:"grow", tips:"提示：o"}
+        ],
+        // 第二关：尼克的快速反应测试 (记忆卡)
+        2: [ 
+            {t:'card', inst:"🦊 尼克问：She的形容词是？", q:"She → ?", opts:["her", "hers"], a:"her", why:"Her book (她的书)。反应要快！"},
+            {t:'card', inst:"🦊 尼克问：这是'她的东西'？", q:"She → ?", opts:["her", "hers"], a:"hers", why:"名词性物主代词：It is hers。"},
+            {t:'card', inst:"🦊 尼克问：给'她'(宾格)？", q:"She → ?", opts:["her", "him"], a:"her", why:"Give it to her。"},
+            {t:'card', inst:"🦊 尼克问：I 的形容词？", q:"I → ?", opts:["me", "my"], a:"my", why:"My pen (我的笔)。"},
+            {t:'card', inst:"🦊 尼克问：这是'我的东西'？", q:"I → ?", opts:["my", "mine"], a:"mine", why:"It is mine。"},
+            {t:'card', inst:"🦊 尼克问：看'我'(宾格)？", q:"I → ?", opts:["me", "my"], a:"me", why:"Look at me。"},
+            {t:'card', inst:"🦊 尼克问：His car还是Him car？", q:"He → ?", opts:["his", "him"], a:"his", why:"His car (他的车)。"},
+            {t:'card', inst:"🦊 尼克问：那是'他的东西'？", q:"He → ?", opts:["his", "him"], a:"his", why:"It is his。His这个词很特殊，两个一样！"},
+            {t:'card', inst:"🦊 尼克问：帮帮'他'？", q:"He → ?", opts:["his", "him"], a:"him", why:"Help him。"},
+            {t:'card', inst:"🦊 尼克问：我们的星球？", q:"We → ?", opts:["our", "us"], a:"our", why:"Our planet。"},
+            {t:'card', inst:"🦊 尼克问：加入我们？", q:"We → ?", opts:["our", "us"], a:"us", why:"Join us。"},
+            {t:'card', inst:"🦊 尼克问：他们的房子？", q:"They → ?", opts:["their", "them"], a:"their", why:"Their house。"},
+            {t:'card', inst:"📋 警校公式：正在做任务", q:"现在进行时", opts:["be + doing", "be + do"], a:"be + doing", why:"正在做：am/is/are + doing！"},
+            {t:'card', inst:"📋 警校公式：平时做任务", q:"一般现在时(三单)", opts:["动词+s/es", "动词+ing"], a:"动词+s/es", why:"三单(他她它)动词要变身！"},
+            {t:'card', inst:"📋 警校公式：很多树叶", q:"Leaf 复数", opts:["leafs", "leaves"], a:"leaves", why:"f变v，再加es。"},
+            {t:'card', inst:"📋 警校公式：Judy有(have)...", q:"have (三单)", opts:["haves", "has"], a:"has", why:"Have变身是Has！"},
+            {t:'card', inst:"📋 警校公式：Judy做(do)...", q:"do (三单)", opts:["dos", "does"], a:"does", why:"Do加es变成Does。"},
+            {t:'card', inst:"📋 警校公式：Nick去(go)...", q:"go (三单)", opts:["gos", "goes"], a:"goes", why:"Go加es变成Goes。"},
+            {t:'card', inst:"📋 警校公式：Flash看(watch)...", q:"watch (三单)", opts:["watchs", "watches"], a:"watches", why:"ch结尾加es。"},
+            {t:'card', inst:"📋 警校公式：飞(fly)...", q:"fly (三单)", opts:["flys", "flies"], a:"flies", why:"y变i加es。"}
+        ],
+        // 第三关：居民背景调查 (一般现在时)
+        3: [
+            {t:'choice', inst:"[档案分析] Nick喜欢蓝莓吗？", q:"Nick _____ blueberries.", opts:["like", "likes"], a:"likes", why:"✅ 档案记录：Nick是单数(三单)，喜欢要加s。"},
+            {t:'choice', inst:"[档案分析] Judy吃肉吗？", q:"Judy _____ eat meat.", opts:["don't", "doesn't"], a:"doesn't", why:"✅ 档案记录：Judy是兔子(三单)，不吃肉用doesn't。"},
+            {t:'choice', inst:"[笔录] 嫌疑人几点起床？", q:"I _____ up at 7 o'clock.", opts:["gets", "get"], a:"get", why:"✅ 笔录：'I'是第一人称，动词用原形。"},
+            {t:'choice', inst:"[询问] 他们住在这里吗？", q:"_____ they live in Zootopia?", opts:["Do", "Does"], a:"Do", why:"✅ 询问对象是They(复数)，用Do。"},
+            {t:'choice', inst:"[询问] 闪电说话慢吗？", q:"_____ Flash speak slowly?", opts:["Do", "Does"], a:"Does", why:"✅ Flash是一个人(三单)，用Does提问。"},
+            {t:'choice', inst:"[档案] 我们周日不上学", q:"We _____ go to school on Sunday.", opts:["aren't", "don't"], a:"don't", why:"✅ 实义动词go的否定，必须请don't帮忙。"},
+            {t:'choice', inst:"[常识] 太阳升起", q:"The sun _____ in the morning.", opts:["rise", "rises"], a:"rises", why:"✅ 太阳只有一个(三单)，动词加s。"},
+            {t:'choice', inst:"[确认] 她工作努力吗？", q:"Does she work hard? -- Yes, she _____.", opts:["is", "does"], a:"does", why:"✅ 口诀：Does问，Does答。"},
+            {t:'choice', inst:"[询问] 你几点睡觉？", q:"What time _____ you go to bed?", opts:["do", "are"], a:"do", why:"✅ 睡觉(go)是动作，助动词用do。"},
+            {t:'choice', inst:"[习惯] 爸爸每天淋浴", q:"My dad _____ a shower every day.", opts:["have", "has"], a:"has", why:"✅ 爸爸是三单，Have变身Has。"},
+            {t:'choice', inst:"[观察] 你看起来不高兴", q:"You _____ look happy.", opts:["doesn't", "don't"], a:"don't", why:"✅ 你(You)配don't，不配doesn't。"},
+            {t:'choice', inst:"[时间] 学校4点放学", q:"It _____ at 4 o'clock.", opts:["finish", "finishes"], a:"finishes", why:"✅ 学校(It)是三单，finish加es。"},
+            {t:'choice', inst:"[职业] 农民种植物", q:"Farmers _____ plants.", opts:["grow", "grows"], a:"grow", why:"✅ 农民们(复数)，动词用原形。"},
+            {t:'choice', inst:"[询问] 你妹妹喜欢胡萝卜吗？", q:"_____ your sister like carrots?", opts:["Do", "Does"], a:"Does", why:"✅ 你妹妹=她(三单)，用Does。"},
+            {t:'choice', inst:"[规则] 我们必须照顾地球", q:"We _____ look after our planet.", opts:["must", "does"], a:"must", why:"✅ 警察守则：必须(must)。"},
+            {t:'choice', inst:"[规则] 不要用新塑料袋", q:"Don't _____ new plastic bags.", opts:["use", "uses"], a:"use", why:"✅ Don't是个照妖镜，后面动词现原形。"},
+            {t:'choice', inst:"[时间] 学校8点开始", q:"School _____ at 8:00.", opts:["starts", "start"], a:"starts", why:"✅ 学校是三单，start加s。"},
+            {t:'choice', inst:"[习惯] 我做作业", q:"I _____ my homework.", opts:["do", "does"], a:"do", why:"✅ I do my homework. 经典搭配。"},
+            {t:'choice', inst:"[习惯] 她做作业", q:"She _____ her homework.", opts:["do", "does"], a:"does", why:"✅ She does her homework. 三单用does。"},
+            {t:'choice', inst:"[询问] 现在几点了？", q:"What time _____ it?", opts:["is", "does"], a:"is", why:"✅ 问时间：What time IS it?"}
+        ],
+        // 第四关：交通摄像头监控 (现在进行时)
+        4: [
+            {t:'choice', inst:"[监控1号] 仓鼠们正在工作", q:"The hamsters _____ working.", opts:["is", "are"], a:"are", why:"📹 监控确认：仓鼠们(复数)用are。"},
+            {t:'choice', inst:"[监控2号] 宝宝正在睡觉", q:"Shh! The baby _____.", opts:["is sleep", "is sleeping"], a:"is sleeping", why:"📹 监控确认：正在发生 be + sleeping。"},
+            {t:'choice', inst:"[对讲机] 你在听我说吗？", q:"_____ you listening to me?", opts:["Do", "Are"], a:"Are", why:"📹 正在听(listening)，前面必须有Are。"},
+            {t:'choice', inst:"[监控3号] 他没在看电视", q:"He _____ watching TV now.", opts:["isn't", "doesn't"], a:"isn't", why:"📹 否定状态：isn't watching。"},
+            {t:'choice', inst:"[询问] 那些人在干什么？", q:"What _____ they doing?", opts:["are", "do"], a:"are", why:"📹 Doing是进行时标志，搭配Are。"},
+            {t:'choice', inst:"[追捕] 那条狗正在跑！", q:"Look! The dog is _____.", opts:["runing", "running"], a:"running", why:"📹 速度太快，n要双写！(running)"},
+            {t:'choice', inst:"[准备] 她正在穿靴子", q:"She is _____ her boots.", opts:["putting on", "put on"], a:"putting on", why:"📹 正在穿，t要双写+ing。"},
+            {t:'choice', inst:"[休闲] 我正在看书", q:"I am _____ a book.", opts:["reading", "read"], a:"reading", why:"📹 Am后面跟ing形式。"},
+            {t:'choice', inst:"[卫生] 他们正在刷牙", q:"They are _____ their teeth.", opts:["cleaning", "cleanning"], a:"cleaning", why:"📹 Clean直接加ing即可。"},
+            {t:'choice', inst:"[确认] 是的，我正在打网球", q:"Are you playing tennis? -- Yes, I _____.", opts:["do", "am"], a:"am", why:"📹 Are you问，I am答。"},
+            {t:'choice', inst:"[监控4号] 她在洗澡吗？", q:"Is she _____ a shower?", opts:["having", "haveing"], a:"having", why:"📹 Have要去e加ing。"},
+            {t:'choice', inst:"[环保] 我们正在种树", q:"We are _____ trees.", opts:["planting", "plants"], a:"planting", why:"📹 正在进行的动作加ing。"},
+            {t:'choice', inst:"[天气] 树叶正在飘落", q:"The leaves are _____.", opts:["faling", "falling"], a:"falling", why:"📹 正在掉落 falling。"},
+            {t:'choice', inst:"[询问] 他正在做什么？", q:"What is he _____?", opts:["doing", "does"], a:"doing", why:"📹 正在做 = doing。"},
+            {t:'choice', inst:"[监控5号] 猫正在爬树", q:"The cat is _____ the tree.", opts:["climing", "climbing"], a:"climbing", why:"📹 Climb直接加ing。"},
+            {t:'choice', inst:"[监控6号] 他们在游泳", q:"They are _____ in the lake.", opts:["swiming", "swimming"], a:"swimming", why:"📹 Swim双写m加ing！"},
+            {t:'choice', inst:"[天气] 没下雪", q:"Is it snowing? -- No, it _____.", opts:["isn't", "doesn't"], a:"isn't", why:"📹 Is it问，it isn't答。"},
+            {t:'choice', inst:"[交通] 公交车来啦！", q:"Look! The bus _____ coming.", opts:["is", "does"], a:"is", why:"📹 Look! 是正在进行的信号。"},
+            {t:'choice', inst:"[生活] 我们正在吃午饭", q:"We _____ having lunch.", opts:["are", "is"], a:"are", why:"📹 We(我们)用are。"},
+            {t:'choice', inst:"[询问] 你要去哪？", q:"Where are you _____?", opts:["going", "go"], a:"going", why:"📹 你正在去哪？Going。"}
+        ],
+        // 第五关：证物归还处 (人称代词)
+        5: [
+            {t:'choice', inst:"🔍 重点搜查：她在哪？", q:"Where is _____?", opts:["her", "she"], a:"she", why:"🚨 警报！找人(主语)要用She！Her是'她的'东西。"},
+            {t:'choice', inst:"[身份] ___ 是好警察", q:"_____ is a good police officer.", opts:["Her", "She"], a:"She", why:"🔍 在句子开头当主角，用She。"},
+            {t:'choice', inst:"[物品] 这是 ___ 笔", q:"This is _____ pen.", opts:["my", "mine"], a:"my", why:"🔍 后面有物品(pen)，用my。"},
+            {t:'choice', inst:"[物品] 这支笔是 ___", q:"This pen is _____.", opts:["my", "mine"], a:"mine", why:"🔍 后面空空的，用mine(我的东西)。"},
+            {t:'choice', inst:"[动作] 把书给 ___", q:"Give the book to _____.", opts:["he", "him"], a:"him", why:"🔍 动作(Give)后面，用宾格him。"},
+            {t:'choice', inst:"[物品] 那是 ___ 车", q:"That is _____ car.", opts:["hers", "her"], a:"her", why:"🔍 后面有车(car)，用her。"},
+            {t:'choice', inst:"[物品] 这车是 ___", q:"The car is _____.", opts:["hers", "her"], a:"hers", why:"🔍 这车是她的(hers)。"},
+            {t:'choice', inst:"[动作] 看着 ___!", q:"Look at _____!", opts:["they", "them"], a:"them", why:"🔍 动作(Look)后面，用宾格them。"},
+            {t:'choice', inst:"[身份] ___ 是朋友", q:"_____ are friends.", opts:["We", "Us"], a:"We", why:"🔍 做主语，用We。"},
+            {t:'choice', inst:"[求助] 能帮帮 ___ 吗？", q:"Can you help _____?", opts:["I", "me"], a:"me", why:"🔍 帮我，动作后用me。"},
+            {t:'choice', inst:"[名字] ___ 名字叫Nick", q:"_____ name is Nick.", opts:["He", "His"], a:"His", why:"🔍 他的名字 His name。"},
+            {t:'choice', inst:"[询问] 这是 ___ 吗？", q:"Is this _____?", opts:["yours", "your"], a:"yours", why:"🔍 这是你的(东西)吗？用yours。"},
+            {t:'choice', inst:"[喜好] 我喜欢 ___", q:"I like _____.", opts:["she", "her"], a:"her", why:"🔍 喜欢她，动作后用her。"},
+            {t:'choice', inst:"[家人] ___ 哥哥在哪？", q:"Where is _____ brother?", opts:["she", "her"], a:"her", why:"🔍 她的哥哥，用her。"},
+            {t:'choice', inst:"🔍 再次确认：她在哪？", q:"Where is _____?", opts:["she", "her"], a:"she", why:"🚨 记住！问人在哪用She！"},
+            {t:'choice', inst:"[特征] ___ 眼睛很大", q:"_____ eyes are big.", opts:["Its", "It"], a:"Its", why:"🔍 它的眼睛 Its eyes。"},
+            {t:'choice', inst:"[描述] ___ 很可爱", q:"Look at that cat. _____ is cute.", opts:["It", "Its"], a:"It", why:"🔍 它是可爱的，用It。"},
+            {t:'choice', inst:"[物品] 书是 ___", q:"These books are _____.", opts:["ours", "our"], a:"ours", why:"🔍 是我们的(ours)。"},
+            {t:'choice', inst:"[情感] 老师爱 ___", q:"Teacher loves _____.", opts:["us", "we"], a:"us", why:"🔍 爱我们(us)。"},
+            {t:'choice', inst:"[喜好] ___ 喜欢苹果吗？", q:"Does _____ like apples?", opts:["he", "him"], a:"he", why:"🔍 他(主语)喜欢吗？用He。"}
+        ],
+        // 第六关：牛局长的结案报告 (大小写)
+        6: [
+            {t:'choice', inst:"📑 报告纠错：句首", q:"选出正确的句子", opts:["she is happy.", "She is happy."], a:"She is happy.", why:"👮 牛局长：句子第一个字母必须大写！"},
+            {t:'choice', inst:"📑 报告纠错：疑问句", q:"选出正确的句子", opts:["where are you?", "Where are you?"], a:"Where are you?", why:"👮 牛局长：W要大写，这是句子的头！"},
+            {t:'choice', inst:"📑 报告纠错：名字", q:"选出正确的句子", opts:["I am judy.", "I am Judy."], a:"I am Judy.", why:"👮 牛局长：Judy是名字，J都不大写？重写！"},
+            {t:'choice', inst:"📑 报告纠错：名字", q:"选出正确的句子", opts:["This is Nick.", "This is nick."], a:"This is Nick.", why:"👮 牛局长：Nick是名字，N要大写。"},
+            {t:'choice', inst:"📑 报告纠错：我和妈妈", q:"选出正确的句子", opts:["My mom and i.", "My mom and I."], a:"My mom and I.", why:"👮 牛局长：单个的“I”(我)，永远要大写！"},
+            {t:'choice', inst:"📑 报告纠错：地名", q:"选出正确的句子", opts:["Welcome to Zootopia.", "Welcome to zootopia."], a:"Welcome to Zootopia.", why:"👮 牛局长：动物城(Zootopia)是地名，Z大写。"},
+            {t:'choice', inst:"📑 报告纠错：他", q:"选出正确的句子", opts:["he likes apples.", "He likes apples."], a:"He likes apples.", why:"👮 牛局长：句首H要大写。"},
+            {t:'choice', inst:"📑 报告纠错：它", q:"选出正确的句子", opts:["it is a cat.", "It is a cat."], a:"It is a cat.", why:"👮 牛局长：句首I要大写。"},
+            {t:'choice', inst:"📑 报告纠错：人名", q:"选出正确的句子", opts:["Is she Mary?", "Is she mary?"], a:"Is she Mary?", why:"👮 牛局长：Mary是名字，M大写。"},
+            {t:'choice', inst:"📑 报告纠错：我是", q:"选出正确的句子", opts:["am i late?", "Am I late?"], a:"Am I late?", why:"👮 牛局长：句首A大写，里面的I(我)也要大写！"},
+            {t:'choice', inst:"📑 报告纠错：命令", q:"选出正确的句子", opts:["open the door.", "Open the door."], a:"Open the door.", why:"👮 牛局长：句首O大写。"},
+            {t:'choice', inst:"📑 报告纠错：国家", q:"选出正确的句子", opts:["I live in China.", "I live in china."], a:"I live in China.", why:"👮 牛局长：China是国家，C必须大写。"},
+            {t:'choice', inst:"📑 报告纠错：星期", q:"选出正确的句子", opts:["On sunday.", "On Sunday."], a:"On Sunday.", why:"👮 牛局长：星期几(Sunday)首字母要大写。"},
+            {t:'choice', inst:"📑 报告纠错：月份", q:"选出正确的句子", opts:["In may.", "In May."], a:"In May.", why:"👮 牛局长：月份(May)首字母要大写。"},
+            {t:'choice', inst:"📑 报告纠错：好友", q:"选出正确的句子", opts:["Nick and Judy are friends.", "nick and judy are friends."], a:"Nick and Judy are friends.", why:"👮 牛局长：两个名字都要大写。"},
+            {t:'choice', inst:"📑 报告纠错：我可以吗", q:"选出正确的句子", opts:["Can i help you?", "Can I help you?"], a:"Can I help you?", why:"👮 牛局长：再次强调，I(我) 永远大写！"},
+            {t:'choice', inst:"📑 报告纠错：他们", q:"选出正确的句子", opts:["they are running.", "They are running."], a:"They are running.", why:"👮 牛局长：句首T要大写。"},
+            {t:'choice', inst:"📑 报告纠错：你是", q:"选出正确的句子", opts:["are you ready?", "Are you ready?"], a:"Are you ready?", why:"👮 牛局长：句首A要大写。"},
+            {t:'choice', inst:"📑 报告纠错：语言", q:"选出正确的句子", opts:["We love English.", "we love english."], a:"We love English.", why:"👮 牛局长：We句首大写，English语言名也要大写。"},
+            {t:'choice', inst:"📑 报告纠错：告别", q:"选出正确的句子", opts:["Goodbye, ben.", "Goodbye, Ben."], a:"Goodbye, Ben.", why:"👮 牛局长：Ben是名字，B要大写。"}
+        ],
+        // 第7关：档案室的特训 (20题，代词表格记忆)
+        7: [
+            {t:'card', inst:"I (宾格)", q:"I → ?", opts:["me", "my"], a:"me", why:"Look at me (看我)。"},
+            {t:'card', inst:"I (我的 - 形容词)", q:"I → ?", opts:["my", "mine"], a:"my", why:"My name (我的名字)。"},
+            {t:'card', inst:"I (我的东西 - 名词性)", q:"I → ?", opts:["my", "mine"], a:"mine", why:"It is mine (是我的)。"},
+            {t:'card', inst:"You (宾格)", q:"You → ?", opts:["you", "your"], a:"you", why:"I love you (我爱你)。宾格还是You！"},
+            {t:'card', inst:"You (你的 - 形容词)", q:"You → ?", opts:["you", "your"], a:"your", why:"Your book (你的书)。"},
+            {t:'card', inst:"You (你的东西 - 名词性)", q:"You → ?", opts:["your", "yours"], a:"yours", why:"It is yours (是你的)。"},
+            {t:'card', inst:"He (宾格)", q:"He → ?", opts:["him", "his"], a:"him", why:"Ask him (问他)。"},
+            {t:'card', inst:"He (他的 - 形容词)", q:"He → ?", opts:["him", "his"], a:"his", why:"His car (他的车)。"},
+            {t:'card', inst:"He (他的东西 - 名词性)", q:"He → ?", opts:["him", "his"], a:"his", why:"It is his (是他的)。His两种用法拼写一样！"},
+            {t:'card', inst:"She (宾格)", q:"She → ?", opts:["her", "hers"], a:"her", why:"Call her (打电话给她)。"},
+            {t:'card', inst:"She (她的 - 形容词)", q:"She → ?", opts:["her", "hers"], a:"her", why:"Her bag (她的包)。"},
+            {t:'card', inst:"She (她的东西 - 名词性)", q:"She → ?", opts:["her", "hers"], a:"hers", why:"It is hers (是她的)。"},
+            {t:'card', inst:"It (宾格)", q:"It → ?", opts:["it", "its"], a:"it", why:"Catch it (抓住它)。"},
+            {t:'card', inst:"It (它的 - 形容词)", q:"It → ?", opts:["it", "its"], a:"its", why:"Its tail (它的尾巴)。"},
+            {t:'card', inst:"We (宾格)", q:"We → ?", opts:["us", "our"], a:"us", why:"Join us (加入我们)。"},
+            {t:'card', inst:"We (我们的 - 形容词)", q:"We → ?", opts:["our", "ours"], a:"our", why:"Our class (我们的班)。"},
+            {t:'card', inst:"We (我们的东西 - 名词性)", q:"We → ?", opts:["our", "ours"], a:"ours", why:"It is ours (是我们的)。"},
+            {t:'card', inst:"They (宾格)", q:"They → ?", opts:["them", "their"], a:"them", why:"Help them (帮助他们)。"},
+            {t:'card', inst:"They (他们的 - 形容词)", q:"They → ?", opts:["them", "their"], a:"their", why:"Their house (他们的房子)。"},
+            {t:'card', inst:"They (他们的东西 - 名词性)", q:"They → ?", opts:["their", "theirs"], a:"theirs", why:"It is theirs (是他们的)。"}
+        ]
+    };
+
+    let currentQ = [];
+    let idx = 0;
+    let score = 0;
+    let wrongList = [];
+
+    function startGame() {
+        const level = document.getElementById('level-select').value;
+        currentQ = DB[level].sort(() => Math.random() - 0.5); 
+        
+        idx = 0; score = 0; wrongList = [];
+        document.getElementById('setup-screen').style.display = 'none';
+        document.getElementById('game-screen').style.display = 'block';
+        
+        // 样式重置
+        const gameScreen = document.getElementById('game-screen');
+        gameScreen.className = 'game-card'; 
+        if(level == 2 || level == 7) gameScreen.classList.add('flashcard-mode');
+        if(level == 6) gameScreen.classList.add('sentence-mode');
+
+        renderQuestion();
+    }
+
+    function renderQuestion() {
+        const q = currentQ[idx];
+        const isInput = q.t === 'input';
+        const level = document.getElementById('level-select').value;
+        
+        document.getElementById('progress-display').innerText = `案件进度: ${idx+1}/${currentQ.length}`;
+        document.getElementById('progress-bar').style.width = `${((idx+1)/currentQ.length)*100}%`;
+        document.getElementById('score-display').innerText = `🏅 功勋: ${score}`;
+        
+        let typeText = "选择题";
+        if(q.t === 'input') typeText = "拼写修复";
+        if(q.t === 'card') typeText = "反应测试";
+        if(level == 6) typeText = "文书纠错";
+        document.getElementById('q-tag').innerText = typeText;
+
+        document.getElementById('q-inst').innerText = q.inst || "请执行指令";
+        document.getElementById('q-main').innerHTML = q.q || q.inst;
+
+        const grid = document.getElementById('options-grid');
+        const inputArea = document.getElementById('input-area');
+        const feedback = document.getElementById('feedback-box');
+        const nextBtn = document.getElementById('next-btn');
+
+        grid.innerHTML = '';
+        feedback.style.display = 'none';
+        nextBtn.style.display = 'none';
+        
+        if(level == 6) {
+            grid.classList.add('single-col-grid');
+        } else {
+            grid.classList.remove('single-col-grid');
+        }
+
+        if(isInput) {
+            grid.style.display = 'none';
+            inputArea.style.display = 'block';
+            const inputField = document.getElementById('user-input');
+            inputField.value = '';
+            inputField.placeholder = "?";
+            inputField.disabled = false;
+            inputField.focus();
+            
+            inputField.onkeypress = function(e){
+                if(e.keyCode === 13) checkSpelling();
+            };
+
+        } else {
+            grid.style.display = 'grid';
+            inputArea.style.display = 'none';
+            
+            let opts = [...q.opts];
+            if(q.t !== 'card' && level != 6 && level != 7) opts.sort(() => Math.random() - 0.5); 
+
+            opts.forEach(opt => {
+                const btn = document.createElement('div');
+                btn.className = 'option-btn';
+                btn.innerText = opt;
+                btn.onclick = () => checkChoice(btn, opt, q);
+                grid.appendChild(btn);
+            });
+        }
+    }
+
+    function checkSpelling() {
+        const input = document.getElementById('user-input');
+        const val = input.value.trim().toLowerCase();
+        const q = currentQ[idx];
+        const nextBtn = document.getElementById('next-btn');
+        
+        if(!val) return;
+
+        input.disabled = true; 
+
+        if(val === q.a.toLowerCase()) {
+            score += 5;
+            showFeedback(true, "✅ 证物修复成功！", `${q.full}<br>(干得好，搭档！)`);
+        } else {
+            wrongList.push(`案件：${q.full} | 错误输入：${val}`);
+            showFeedback(false, "❌ 修复失败！", `正确线索是：${q.a}<br>完整单词：${q.full}`);
+        }
+        nextBtn.style.display = 'block';
+    }
+
+    function checkChoice(btn, val, q) {
+        document.querySelectorAll('.option-btn').forEach(b => b.onclick = null);
+        
+        const isCorrect = val === q.a;
+        
+        if(isCorrect) {
+            btn.classList.add('correct');
+            score += 5;
+            showFeedback(true, "✅ 逮捕成功！", q.why);
+        } else {
+            btn.classList.add('wrong');
+            document.querySelectorAll('.option-btn').forEach(b => {
+                if(b.innerText === q.a) b.classList.add('correct');
+            });
+            wrongList.push(`案件：${q.inst} | 正确：${q.a}`);
+            showFeedback(false, "❌ 嫌疑人逃跑了！", q.why);
+        }
+        document.getElementById('next-btn').style.display = 'block';
+    }
+
+    function showFeedback(isCorrect, title, text) {
+        const box = document.getElementById('feedback-box');
+        const titleSpan = document.getElementById('fb-title');
+        const textSpan = document.getElementById('fb-text');
+
+        box.style.display = 'block';
+        titleSpan.innerText = title;
+        titleSpan.style.color = isCorrect ? 'var(--correct)' : 'var(--wrong)';
+        textSpan.innerHTML = text;
+        playAudio(isCorrect);
+    }
+
+    function nextQuestion() {
+        idx++;
+        if(idx < currentQ.length) {
+            renderQuestion();
+        } else {
+            showResult();
+        }
+    }
+
+    function showResult() {
+        document.getElementById('game-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+        document.getElementById('final-score').innerText = score;
+        
+        const list = document.getElementById('wrong-list');
+        if(wrongList.length === 0) {
+            list.innerHTML = "<p style='color:var(--correct)'>🎉 完美结案！牛局长对你刮目相看！</p>";
+        } else {
+            list.innerHTML = "<p style='color:var(--wrong)'><b>📂 未结案件复盘：</b></p>" + 
+                wrongList.map(item => `<div style="margin-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:5px;">${item}</div>`).join('');
+        }
+    }
+
+    let audioCtx;
+    function playAudio(isCorrect) {
+        try {
+            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            if(isCorrect) {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            } else {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+            }
+        } catch(e) {}
+    }
+</script>
+</body>
+</html>
